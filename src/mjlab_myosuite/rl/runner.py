@@ -27,7 +27,8 @@ class MyoSuiteOnPolicyRunner(OnPolicyRunner):
     super().save(path, infos)
 
     # Export ONNX model if using wandb logger
-    if self.logger_type in ["wandb"]:
+    logger_type = getattr(self.logger, "logger_type", None)
+    if logger_type == "wandb":
       try:
         import wandb
 
@@ -36,16 +37,16 @@ class MyoSuiteOnPolicyRunner(OnPolicyRunner):
 
         # Get normalizer if available
         if (
-          hasattr(self.alg.policy, "actor_obs_normalization")
-          and self.alg.policy.actor_obs_normalization
+          hasattr(self.alg.actor, "obs_normalization")
+          and self.alg.actor.obs_normalization
         ):
-          normalizer = self.alg.policy.actor_obs_normalizer
+          normalizer = self.alg.actor.obs_normalizer
         else:
           normalizer = None
 
         # Export policy to ONNX
         export_myosuite_policy_as_onnx(
-          actor_critic=self.alg.policy,
+          actor_critic=self.alg.actor,
           normalizer=normalizer,
           path=policy_path,
           filename=filename,

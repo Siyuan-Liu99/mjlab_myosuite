@@ -61,8 +61,8 @@ class MyoSuiteEnvCfg:
   """Device to use. Set to 'cuda:0' for GPU-accelerated MyoSuite (mjx/warp versions)."""
   physics_backend: PhysicsBackend = PhysicsBackend.CPU
   """Physics backend: CPU (default) or WARP. WARP uses MyoSuite mjx branch when available."""
-  commands: Any = None
-  """Command configuration for tracking tasks. None for non-tracking tasks.
+  commands: Any = field(default_factory=dict)
+  """Command configuration for tracking tasks. Empty dict for non-tracking tasks.
 
   This attribute exists for compatibility with mjlab's native scripts which check
   for commands to determine if a task is a tracking task. For tracking tasks,
@@ -139,8 +139,14 @@ class MyoSuiteEnvCfg:
   """Finite horizon flag (stub for ManagerBasedRlEnvCfg compatibility)."""
   scale_rewards_by_dt: bool = True
   """Scale rewards by dt (stub for ManagerBasedRlEnvCfg compatibility)."""
-  curriculum: Any = None
+  curriculum: Any = field(default_factory=dict)
   """Curriculum configuration (stub for ManagerBasedRlEnvCfg compatibility)."""
+  metrics: dict[str, Any] = field(default_factory=dict)
+  """Metrics configuration (stub for ManagerBasedRlEnvCfg compatibility)."""
+  recorders: dict[str, Any] = field(default_factory=dict)
+  """Recorders configuration (stub for ManagerBasedRlEnvCfg compatibility)."""
+  auto_reset: bool = True
+  """Whether to auto-reset on termination (stub for ManagerBasedRlEnvCfg compatibility)."""
   task_id: str | None = None
   """Task ID for ManagerBasedRlEnv integration (set automatically)."""
 
@@ -153,8 +159,8 @@ def get_default_myosuite_rl_cfg() -> Any:
   """
   # Lazy import to avoid triggering mjlab import chain
   from mjlab.rl import (
+    RslRlModelCfg,
     RslRlOnPolicyRunnerCfg,
-    RslRlPpoActorCriticCfg,
     RslRlPpoAlgorithmCfg,
   )
 
@@ -163,9 +169,14 @@ def get_default_myosuite_rl_cfg() -> Any:
     run_name="",
     max_iterations=1000,
     num_steps_per_env=24,
-    policy=RslRlPpoActorCriticCfg(
-      actor_hidden_dims=(256, 256),
-      critic_hidden_dims=(256, 256),
+    obs_groups={"actor": ("policy",), "critic": ("critic",)},
+    actor=RslRlModelCfg(
+      hidden_dims=(256, 256),
+      activation="elu",
+      distribution_cfg={"class_name": "GaussianDistribution"},
+    ),
+    critic=RslRlModelCfg(
+      hidden_dims=(256, 256),
       activation="elu",
     ),
     algorithm=RslRlPpoAlgorithmCfg(
@@ -175,5 +186,4 @@ def get_default_myosuite_rl_cfg() -> Any:
       gamma=0.99,
       lam=0.95,
     ),
-    clip_actions=None,  # Let MyoSuite handle action bounds
   )

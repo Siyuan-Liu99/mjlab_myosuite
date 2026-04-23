@@ -160,8 +160,22 @@ def _patched_run_train(task_id: str, cfg, log_dir: Path) -> None:
       print("[INFO] Recording videos during training.")
 
     # Get runner class
-    agent_cfg = asdict(cfg.agent)
-    env_cfg = asdict(cfg.env)
+    import dataclasses
+    agent_cfg = dataclasses.asdict(cfg.agent)
+    env_cfg = dataclasses.asdict(cfg.env)
+
+    # Filter out fields not supported by rsl_rl MLPModel
+    # Some versions of rsl_rl don't support cnn_cfg or rnn fields in MLPModel constructor
+    if "actor" in agent_cfg:
+      for k in ["cnn_cfg", "rnn_type", "rnn_hidden_dim", "rnn_num_layers"]:
+        agent_cfg["actor"].pop(k, None)
+    if "critic" in agent_cfg:
+      for k in ["cnn_cfg", "rnn_type", "rnn_hidden_dim", "rnn_num_layers"]:
+        agent_cfg["critic"].pop(k, None)
+
+    # Add missing multi_gpu if not present (required by PPO.construct_algorithm)
+    if "multi_gpu" not in agent_cfg:
+      agent_cfg["multi_gpu"] = None
 
     # Use MyoSuite-specific runner for tracking or regular tasks
     # Type ignore: ManagerBasedRlEnv is wrapped/compatible with VecEnv interface
